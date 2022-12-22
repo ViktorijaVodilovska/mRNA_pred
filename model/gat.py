@@ -13,16 +13,16 @@ class GAT(torch.nn.Module):
         convs, norms, drops = [], [], []
         for i in range(layers):
             convs.append(GATv2Conv(
-                in_channels=hidden_channels[i-1] if i!=0 else node_dim, 
-                out_channels=hidden_channels[i], 
-                heads=attention_heads[i], 
-                dropout=attention_dropouts[i],
+                in_channels=hidden_channels if i!=0 else node_dim, 
+                out_channels=hidden_channels, 
+                heads=attention_heads, 
+                dropout=attention_dropouts,
                 edge_dim=edge_dim,
-                return_attention_weights=True,
                 # TODO: alternatives to try for concat: concat=True / is concatenated and projected (NN) back down to a size of 64 
                 concat = False,
-                
-                # default params that i might need to play with:
+
+                # NOTE: default params that i might want to play with:
+                # return_attention_weights=True if i==layers-1 else False,
                 # negative_slope 
                 # add_self_loops 
                 # fill_value 
@@ -31,29 +31,25 @@ class GAT(torch.nn.Module):
                 ))
 
             if graph_norm == True:
-                norms.append(GraphNorm(in_channels=hidden_channels[i]))
+                norms.append(GraphNorm(in_channels=hidden_channels))
             else:
-                norms.append(LayerNorm(in_channels=hidden_channels[i]))
+                norms.append(LayerNorm(in_channels=hidden_channels))
                 
-            drops.append(Dropout(p=dropouts[i]))
+            drops.append(Dropout(p=dropouts))
             
         self._convs = ModuleList(convs)
         self._norms = ModuleList(norms)
         self._drops = ModuleList(drops)
         
-        self.output_dim = hidden_channels[-1]
+        self.output_dim = hidden_channels
                 
 
     def forward(self, x, edge_index):
         for i in range(self.layers):
             x = self._convs[i](x, edge_index)
-            
-            print(x.shape())
             x = self._norms[i](x)
             x = self._drops[i](x)
-            
-            # wandb.log({f'attention_{i}':attn})
-        
+                
         return x
     
   

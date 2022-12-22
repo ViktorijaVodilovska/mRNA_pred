@@ -15,23 +15,23 @@ class Predictor(torch.nn.Module):
    
         self._nns = ModuleList(
             [Linear(
-                in_features=hidden_channels[i-1] if i!=0 else graph_model.output_dim,
-                out_features=hidden_channels[i] if i!=layers-1 else output_channels)
+                in_features=hidden_channels if i!=0 else graph_model.output_dim,
+                out_features=hidden_channels if i!=layers-1 else output_channels)
             for i in range(layers)]
         )
         
         self._norms = ModuleList(
-            [LayerNorm(hidden_channels[i]) for i in range(layers-1)]
+            [LayerNorm(hidden_channels) for i in range(layers-1)]
         )
         
         self._drops = ModuleList(
-            [Dropout(dropouts[i]) for i in range(layers-1)]
+            [Dropout(dropouts) for i in range(layers-1)]
         )
         
         
-    def forward(self, x, edge_index):
+    def forward(self, data):
         
-        x = self.graph_stack(x, edge_index)
+        x = self.graph_stack(data.x, data.edge_index)
         
         for i in range(self.layers-1):
             x = self._nns[i](x)
