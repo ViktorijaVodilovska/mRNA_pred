@@ -1,11 +1,32 @@
 import torch
 from torch.nn import Dropout, ModuleList
 from torch_geometric.nn import GATv2Conv, LayerNorm, GraphNorm
-import wandb
 
 
 class GAT(torch.nn.Module):
-    def __init__(self, node_dim, edge_dim, layers, hidden_channels, attention_heads, attention_dropouts, dropouts, graph_norm=False):
+    """
+    Class for the GAT based Graph Stack
+
+        Params:
+    layers (int): number of layers in the Stack
+    output_dim (int): the size of the output node embeddings
+    """
+    
+    def __init__(self, node_dim: int = 1, edge_dim: int = 1, layers: int = 3, hidden_channels: int = 64, attention_heads: int = 4, attention_dropouts: float = 0.2, dropouts: float = 0.5, graph_norm: bool = True):
+        """
+        Creates GAT Stack with specified number of layers, each containing {GATConv, normalization and dropouts}.
+
+        Args:
+            node_dim (int, optional): Size of input node features. Defaults to 1.
+            edge_dim (int, optional): Size of input node features. Defaults to 1.
+            layers (int, optional): Number of layers in the Stack. Defaults to 3.
+            hidden_channels (int, optional): Size of the hidden layers. It also determines output node embedding dimension. Defaults to 64.
+            attention_heads (int, optional): Number of attention heads for all the layers. Defaults to 4.
+            attention_dropouts (float): Rate of dropout of the attention coeficients in each layer. Defaults to 0.2.
+            dropouts (float, optional): Rate of dropout after normalization in each layer. Defaults to 0.5.
+            graph_norm (bool, optional): Use GraphNorm instead of LayerNorm after each convolution. Defaults to True.
+        """
+        
         super(GAT, self).__init__()
         
         self.layers = layers
@@ -21,7 +42,7 @@ class GAT(torch.nn.Module):
                 # TODO: alternatives to try for concat: concat=True / is concatenated and projected (NN) back down to a size of 64 
                 concat = False,
 
-                # NOTE: default params that i might want to play with:
+                # NOTE: default params to play with:
                 # return_attention_weights=True if i==layers-1 else False,
                 # negative_slope 
                 # add_self_loops 
@@ -33,7 +54,7 @@ class GAT(torch.nn.Module):
             if graph_norm == True:
                 norms.append(GraphNorm(in_channels=hidden_channels))
             else:
-                norms.append(LayerNorm(in_channels=hidden_channels))
+                norms.append(LayerNorm(in_channels=hidden_channels, mode="node"))
                 
             drops.append(Dropout(p=dropouts))
             
@@ -45,33 +66,11 @@ class GAT(torch.nn.Module):
                 
 
     def forward(self, x, edge_index):
+        # TODO: return and explore attention
         for i in range(self.layers):
             x = self._convs[i](x, edge_index)
             x = self._norms[i](x)
             x = self._drops[i](x)
                 
         return x
-    
-  
-            
-    
-    
-# if __name__ == "__main__":
-    # parser = argparse.ArgumentParser(description="Parsing argument")
-    # parser.add_argument("--beta1", type=float, default=0.9, help="Beta 1 of Adam optimizer")
-    # parser.add_argument("--beta2", type=float, default=0.999, help="Beta 2 of Adam optimizer")
-    # parser.add_argument("--lr", type=float, default=1e-3, help="Learning rate for optimizer")
-    # parser.add_argument("--step_size", type=int, default=100, help="Step size of StepLR")
-    # parser.add_argument("--gamma", type=float, default=0.99, help="Gamma of StepLR")
-    # parser.add_argument("--num_epoch", type=int, default=100, help="Number of epochs")
-    # parser.add_argument("--num_iter", type=int, default=100, help="Number of iteration in one epoch")
-    # parser.add_argument("--batch_size", type=int, default=64, help="Size of a batch")
-    # parser.add_argument("--num_worker", type=int, default=8, help="Number of workers for data loader")
-    # parser.add_argument("--out_dir", type=str, default="out", help="Name of the output directory")
-    # parser.add_argument(
-    #     "--save_period", type=int, default=100, help="Number of epochs between checkpoints"
-    # )
-    # args = parser.parse_args()
-    
-    
-    
+
