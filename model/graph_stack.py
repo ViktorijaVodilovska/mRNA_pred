@@ -2,8 +2,6 @@ from typing import Any, Dict
 import torch
 from torch.nn import Dropout, ModuleList
 from torch_geometric.nn import GCNConv, LayerNorm, GraphNorm
-from configs.predictor_config import GraphConfig
-
 
 class GraphStack(torch.nn.Module):
 
@@ -41,8 +39,3 @@ class GraphStack(torch.nn.Module):
             x = self._drops[i](x)
 
         return x
-
-    @classmethod
-    def from_config(cls, config: Dict[str, Any], graph_info: Dict[str, Any]) -> torch.nn.Module:
-        model = GraphConfig.models[config['model_name']]['model']
-        return model.from_config(config, graph_info)
