@@ -1,9 +1,12 @@
+from typing import Any, Dict
 import torch
-from torch.nn import Dropout, ModuleList
-from torch_geometric.nn import GATv2Conv, LayerNorm, GraphNorm
+from torch.nn import ModuleList
+from torch_geometric.nn import GATv2Conv
+from configs.graph_configs import GATConfig
+from model.graph_stack import GraphStack
 
 
-class GAT(torch.nn.Module):
+class GAT(GraphStack):
     """
     Class for the GAT based Graph Stack
 
@@ -12,7 +15,7 @@ class GAT(torch.nn.Module):
     output_dim (int): the size of the output node embeddings
     """
     
-    def __init__(self, node_dim: int = 1, edge_dim: int = 1, layers: int = 3, hidden_channels: int = 64, attention_heads: int = 4, attention_dropouts: float = 0.2, dropouts: float = 0.5, graph_norm: bool = True):
+    def __init__(self, node_dim: int = 1, edge_dim: int = 1, graph_layers: int = 3, graph_hidden_channels: int = 64, attention_heads: int = 4, attention_dropouts: float = 0.2, graph_dropouts: float = 0.5, graph_norm: bool = True):
         """
         Creates GAT Stack with specified number of layers, each containing {GATConv, normalization and dropouts}.
 
@@ -26,16 +29,12 @@ class GAT(torch.nn.Module):
             dropouts (float, optional): Rate of dropout after normalization in each layer. Defaults to 0.5.
             graph_norm (bool, optional): Use GraphNorm instead of LayerNorm after each convolution. Defaults to True.
         """
-        
-        super(GAT, self).__init__()
-        
-        self.layers = layers
-        
-        convs, norms, drops = [], [], []
-        for i in range(layers):
-            convs.append(GATv2Conv(
-                in_channels=hidden_channels if i!=0 else node_dim, 
-                out_channels=hidden_channels, 
+        super(GAT, self).__init__(graph_layers, graph_hidden_channels, graph_dropouts, graph_norm)
+
+        convs = [
+            GATv2Conv(
+                in_channels=graph_hidden_channels if layer!=0 else node_dim, 
+                out_channels=graph_hidden_channels, 
                 heads=attention_heads, 
                 dropout=attention_dropouts,
                 edge_dim=edge_dim,
@@ -49,28 +48,18 @@ class GAT(torch.nn.Module):
                 # fill_value 
                 # bias 
                 # share_weights 
-                ))
+                )
+            for layer in range(graph_layers)
+            ]
 
-            if graph_norm == True:
-                norms.append(GraphNorm(in_channels=hidden_channels))
-            else:
-                norms.append(LayerNorm(in_channels=hidden_channels, mode="node"))
-                
-            drops.append(Dropout(p=dropouts))
-            
         self._convs = ModuleList(convs)
-        self._norms = ModuleList(norms)
-        self._drops = ModuleList(drops)
-        
-        self.output_dim = hidden_channels
-                
 
-    def forward(self, x, edge_index):
-        # TODO: return and explore attention
-        for i in range(self.layers):
-            x = self._convs[i](x, edge_index)
-            x = self._norms[i](x)
-            x = self._drops[i](x)
-                
-        return x
+    @classmethod
+    def from_config(cls, config: Dict[str, Any], graph_info : Dict[str, Any]) -> torch.nn.Module:
 
+        params = {k:config[k] for k in GATConfig.hyperparameters.keys()}
+
+        params['node_dim'] = graph_info['node_dim']
+        params['edge_dim'] = graph_info['edge_dim']
+
+        return cls(**params)

@@ -18,4 +18,4 @@ class HPOConfig():
         self.sweep_config = self._base_sweep_configuration
         # TODO: solve for when it isn't random/bayes
         self.sweep_config['method'] = algorithm
-        self.sweep_config['parameters'] = GraphConfig.models[model].hyperparameters | PredictorConfig.hyperparameters | TrainConfig.hyperparameters
+        self.sweep_config['parameters'] = GraphConfig.models[model]['config'].hyperparameters | PredictorConfig.hyperparameters | TrainConfig.hyperparameters

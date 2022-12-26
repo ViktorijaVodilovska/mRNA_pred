@@ -1,6 +1,9 @@
 from typing import Dict, Any, List
 import torch
 from configs.graph_configs import GATConfig, GCNConfig, HANConfig
+from model.gat import GAT
+from model.gcn import GCN
+from model.han import HAN
 
 
 class PredictorConfig():
@@ -27,9 +30,18 @@ class PredictorConfig():
 
 class GraphConfig():
     models: Dict[str, Any] = {
-        "GAT": GATConfig,
-        "GCN": GCNConfig,
-        "HAN": HANConfig,
+        "GAT": {
+            "model": GAT,
+            "config": GATConfig,
+        },
+        "GCN": {
+            "model": GCN,
+            "config": GCNConfig,
+        },
+        "HAN": {
+            "model": HAN,
+            "config": HANConfig,
+        },
     }
 
 

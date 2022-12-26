@@ -1,9 +1,12 @@
+from typing import Any, Dict
 import torch
-from torch.nn import Dropout, ModuleList
-from torch_geometric.nn import GCNConv, LayerNorm, GraphNorm
+from torch.nn import ModuleList
+from torch_geometric.nn import GCNConv
+from configs.graph_configs import GCNConfig
+from model.graph_stack import GraphStack
 
 
-class GCN(torch.nn.Module):
+class GCN(GraphStack):
     """
     Class for the GCN based Graph Stack
 
@@ -11,8 +14,8 @@ class GCN(torch.nn.Module):
     layers (int): number of layers in the Stack
     output_dim (int): the size of the output node embeddings
     """
-    
-    def __init__(self, node_dim: int = -1, layers: int = 3, hidden_channels: int = 64, dropouts = 0.5, graph_norm: bool = True):
+
+    def __init__(self, node_dim: int = -1, graph_layers: int = 3, graph_hidden_channels: int = 64, graph_dropouts = 0.5, graph_norm: bool = True):
         """
         Creates GCN Stack with specified number of layers, each containing {GCNConv, normalization and dropouts}.
 
@@ -23,35 +26,24 @@ class GCN(torch.nn.Module):
             dropouts (float, optional): Rate of dropout after normalization in each layer. Defaults to 0.5.
             graph_norm (bool, optional): Use GraphNorm instead of LayerNorm after each convolution. Defaults to True.
         """
-        super(GCN, self).__init__()
+        super(GCN, self).__init__(graph_layers, graph_hidden_channels, graph_dropouts, graph_norm)
 
-        self.layers = layers
-
-        convs, norms, drops = [], [], []
-        for i in range(layers):
-            convs.append(GCNConv(
-                in_channels=hidden_channels if i != 0 else node_dim,
-                out_channels=hidden_channels,
+        convs = [
+            GCNConv(
+                in_channels=graph_hidden_channels if layer != 0 else node_dim,
+                out_channels=graph_hidden_channels,
                 # NOTE: other default params to play with
-            ))
-
-            if graph_norm == True:
-                norms.append(GraphNorm(in_channels=hidden_channels))
-            else:
-                norms.append(LayerNorm(in_channels=hidden_channels, mode="node"))
-
-            drops.append(Dropout(p=dropouts))
+            )
+            for layer in range(graph_layers)
+            ]
 
         self._convs = ModuleList(convs)
-        self._norms = ModuleList(norms)
-        self._drops = ModuleList(drops)
 
-        self.output_dim = hidden_channels
+    @classmethod
+    def from_config(cls, config: Dict[str, Any], graph_info : Dict[str, Any]) -> torch.nn.Module:
 
-    def forward(self, x, edge_index):
-        for i in range(self.layers):
-            x = self._convs[i](x, edge_index)
-            x = self._norms[i](x)
-            x = self._drops[i](x)
+        params = {k:config[k] for k in GCNConfig.hyperparameters.keys()}
 
-        return x
+        params['node_dim'] = graph_info['node_dim']
+
+        return cls(**params)
