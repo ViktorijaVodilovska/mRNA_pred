@@ -1,4 +1,4 @@
-import os
+from ViennaRNA import RNA
 import json
 import torch
 import pandas as pd
@@ -9,7 +9,7 @@ from sklearn.preprocessing import LabelEncoder
 from torch_geometric.data import Data
 
 
-def to_pytorch_dataset(dataset: pd.DataFrame, bppm_folder: Path, target_labels: List[str], train=True) -> list:
+def to_pytorch_dataset(dataset: pd.DataFrame, target_labels: List[str], train=True) -> list:
   """
   Creates a list of torch.geometric.data.Data objects representing each row of RNA molecule data.
   """
@@ -29,12 +29,11 @@ def to_pytorch_dataset(dataset: pd.DataFrame, bppm_folder: Path, target_labels: 
 
     # Create edges
 
-    # load bppm data for the mRNA molecule
-    if not os.path.exists(bppm_folder / f"{row['id']}.npy"):
-      print(f"no file for id {row['id']}")
-      break
-    bppm = np.load(bppm_folder / f"{row['id']}.npy")
-    bppm = pd.DataFrame(bppm)
+    # get bppm data for the mRNA molecule
+    fc = RNA.fold_compound(row['sequence'])
+    (propensity, ensemble_energy) = fc.pf()
+    bppm = fc.bpp()
+    bppm = [list(t) for t in bppm]
 
     # add each base pair probability as an edge
     edge_indexes = []
