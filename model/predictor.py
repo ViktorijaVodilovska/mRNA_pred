@@ -63,7 +63,7 @@ class Predictor(torch.nn.Module):
 
         x = self.graph_stack(data.x, data.edge_index)
 
-        for i in range(self.layers-1):
+        for i in range(self.pred_layers-1):
             x = self._nns[i](x)
             x = self._norms[i](x)
             x = self._drops[i](x)

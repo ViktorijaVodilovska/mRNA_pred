@@ -1,5 +1,6 @@
 import argparse
 import json
+import os
 from pathlib import Path
 import torch
 from model.predictor import Predictor
@@ -22,7 +23,6 @@ def get_graph_info(example, hetero):
         graph_info['input_channels'] = -1  # TODO
     else:
         graph_info['node_dim'] = example.x.shape[1]
-        graph_info['edge_dim'] = example.edge_attr.shape[0]
 
     return graph_info
 
@@ -44,8 +44,9 @@ def run_training(config: Dict[str, Any], log: bool = True, save: bool = False, t
 
     # save experiment settings
     print(config)
-    with open(settings.get_model_folder(config['config_name']) / "config.json", "w"):
-        json.dump(config, f)
+    if not os.path.exists(settings.get_model_folder(config['config_name']) / "config.json"):
+        with open(settings.get_model_folder(config['config_name']) / "config.json", "w") as f:
+            json.dump(config, f)
 
     hetero_data = config['model_name'] == 'HAN'
 

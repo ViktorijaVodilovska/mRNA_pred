@@ -58,6 +58,5 @@ class GAT(GraphStack):
         params = {k: config[k] for k in GATConfig.hyperparameters.keys()}
 
         params['node_dim'] = graph_info['node_dim']
-        params['edge_dim'] = graph_info['edge_dim']
 
         return cls(**params)
