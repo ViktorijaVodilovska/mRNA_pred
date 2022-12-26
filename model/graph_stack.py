@@ -3,18 +3,38 @@ import torch
 from torch.nn import Dropout, ModuleList
 from torch_geometric.nn import GCNConv, LayerNorm, GraphNorm
 
-class GraphStack(torch.nn.Module):
 
-    def __init__(self, graph_layers: int = 3, graph_hidden_channels: int = 64, graph_dropouts=0.5, graph_norm: bool = True):
+class GraphStack(torch.nn.Module):
+    """
+    BaseClass for the Graph Stack.
+    Inherits from torch.nn.Module.
+
+    Params:
+        graph_layers (int): number of layers in the Stack
+        output_dim (int): the size of the output node embeddings
+    """
+
+    def __init__(self, model_name: str = 'base', graph_layers: int = 3, graph_hidden_channels: int = 64, graph_dropouts=0.5, graph_norm: bool = True):
+        """
+        Creates base Graph Stack with specified number of layers, each containing {GCNConv, normalization and dropouts}.
+
+        Args:
+            model_name (str, optional): Name of the built model. Defaults to 'base'.
+            graph_layers (int, optional): _description_. Defaults to 3.
+            graph_hidden_channels (int, optional): _description_. Defaults to 64.
+            graph_dropouts (float, optional): _description_. Defaults to 0.5.
+            graph_norm (bool, optional): _description_. Defaults to True.
+        """
         super(GraphStack, self).__init__()
 
+        self.model_name = model_name
         self.graph_layers = graph_layers
 
         convs, norms, drops = [], [], []
         for i in range(graph_layers):
             # default model
             convs.append(GCNConv(
-                in_channels=-1,
+                in_channels=-1 if i == 0 else graph_hidden_channels,
                 out_channels=graph_hidden_channels,
             ))
 
