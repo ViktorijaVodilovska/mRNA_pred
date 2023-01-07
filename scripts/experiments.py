@@ -146,7 +146,7 @@ if __name__ == "__main__":
     if args.config_path == None:
         # example config
         # BEST GAT FROM TUNING
-        config_path = settings.EXPERIMENTS_FOLDER / 'full_expert_sweep/config.json'
+        config_path = settings.EXPERIMENTS_FOLDER / 'full_expert_gat/config.json'
         with open(config_path, 'r') as f:
             config = json.load(f)
     else:

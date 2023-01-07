@@ -13,7 +13,7 @@ def run(**kwargs):
     res_conf.update(GraphConfig.from_dict(conf))
     res_conf.update(TrainConfig.from_dict(conf))
     
-    run_training(res_conf, log=False)
+    run_training(res_conf)
 
 
 if __name__ == "__main__":
