@@ -1,10 +1,11 @@
 import wandb
 import torch
-from configs.predictor_config import PredictorConfig as train_settings
+from configs.predictor_config import TrainConfig as train_settings
 from scripts.evaluate import test_model
 
 
 def train_model(model, train_loader, val_loader, epochs, target_labels, loss_type: str = 'mse', learning_rate: float = 0.01, hetero=False, log=True, save_to=None):
+    print('Starting training')
     criterion = train_settings.loss_function[loss_type]()
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=5e-4)
 

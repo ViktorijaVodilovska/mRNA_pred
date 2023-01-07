@@ -1,10 +1,9 @@
+from configs.predictor_config import GraphConfig
 import torch
 from torch.nn import Dropout, Linear, ModuleList
 from torch_geometric.nn import LayerNorm
 from typing import Any, Dict
 from configs.base_config import BaseSettings as settings
-from configs.predictor_config import GraphConfig
-from model.graph_stack import GraphStack
 
 
 class Predictor(torch.nn.Module):

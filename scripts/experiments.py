@@ -40,13 +40,15 @@ def run_training(config: Dict[str, Any], log: bool = True, save: bool = False, t
         _type_: _description_
     """
 
-    # TODO: add loading from checkpoint?
-
-    # save experiment settings
     print(config)
-    if not os.path.exists(settings.get_model_folder(config['config_name']) / "config.json"):
-        with open(settings.get_model_folder(config['config_name']) / "config.json", "w") as f:
-            json.dump(config, f)
+
+    # TODO: add loading from checkpoint?
+    
+    # save experiment settings
+    if save:
+        if os.path.exists(settings.get_model_folder(config['config_name']) / "config.json"):
+            with open(settings.get_model_folder(config['config_name']) / "config.json", "w") as f:
+                json.dump(config, f)
 
     hetero_data = config['model_name'] == 'HAN'
 
@@ -144,7 +146,7 @@ if __name__ == "__main__":
     if args.config_path == None:
         # example config
         # BEST GAT FROM TUNING
-        config_path = settings.EXPERIMENT_FOLDER / 'top_gat_full/config.json'
+        config_path = settings.EXPERIMENTS_FOLDER / 'full_expert_sweep/config.json'
         with open(config_path, 'r') as f:
             config = json.load(f)
     else:
