@@ -52,7 +52,9 @@ class GraphStack(torch.nn.Module):
 
         self.output_dim = graph_hidden_channels
 
-    def forward(self, x, edge_index):
+    def forward(self, data):
+        x = data.x
+        edge_index = data.edge_index
         for i in range(self.graph_layers):
             x = self._convs[i](x, edge_index)
             x = self._norms[i](x)

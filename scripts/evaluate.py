@@ -14,11 +14,10 @@ def test_model(loader, model, target_labels, hetero=False):
     pred_df = pd.DataFrame(columns=target_labels)
 
     for data in loader:  # Iterate in batches over the training/test dataset.
+        preds = model(data).detach().numpy()
         if hetero:
-            preds = model(data.x_dict, data.edge_index_dict).detach().numpy()
             truths = data.y_dict['base'].detach().numpy()
         else:
-            preds = model(data).detach().numpy()
             truths = data.y.detach().numpy()
         for node in range(len(truths)):
             pred_df = pd.DataFrame(

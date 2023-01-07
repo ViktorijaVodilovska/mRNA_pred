@@ -19,7 +19,10 @@ def train_model(model, train_loader, val_loader, epochs, target_labels, loss_typ
         for data in train_loader:  # Iterate in batches over the training dataset.
             optimizer.zero_grad()  # Clear gradients.
             out = model(data)  # Perform a single forward pass.
-            loss = criterion(out[data.train_mask], data.y[data.train_mask])  # Compute the loss solely based on the training nodes.
+            if hetero:
+                loss = criterion(out[data.train_mask], data.y_dict['base'][data.train_mask])  # TODO: fix hardcoded 'base'
+            else:
+                loss = criterion(out[data.train_mask], data.y[data.train_mask])  # Compute the loss solely based on the training nodes.
             loss.backward()  # Derive gradients.
             optimizer.step()  # Update parameters based on gradients.
             losses.append(loss.detach().numpy())

@@ -5,13 +5,14 @@ from pathlib import Path
 import torch
 from model.predictor import Predictor
 from torch_geometric.loader import DataLoader
-from graph.homogenous_dataset import to_pytorch_dataset
+from graph.homogenous_dataset import to_pytorch_data
+from graph.heterogenous_dataset import to_pytorch_heterodata
 from sklearn.model_selection import train_test_split
 import pandas as pd
 from typing import Dict, Any
 from configs.base_config import BaseSettings as settings
-from scripts.evaluate import test_model
 from scripts.train import train_model
+from scripts.evaluate import test_model
 import wandb
 
 
@@ -20,7 +21,7 @@ def get_graph_info(example, hetero):
     graph_info = {}
     if hetero:
         graph_info['metadata'] = example.metadata()
-        graph_info['input_channels'] = -1  # TODO
+        graph_info['in_channels'] = example.num_node_features
     else:
         graph_info['node_dim'] = example.x.shape[1]
 
@@ -28,14 +29,15 @@ def get_graph_info(example, hetero):
 
 
 def run_training(config: Dict[str, Any], log: bool = True, save: bool = False, test: bool = False):
-    """_summary_
+    """
+    _summary_
 
     Args:
         config (Dict[str, Any]): _description_
         log (bool, optional): _description_. Defaults to True.
         save (bool, optional): _description_. Defaults to False.
         test (bool, optional): _description_. Defaults to False.
-        
+
     Returns:
         _type_: _description_
     """
@@ -43,7 +45,7 @@ def run_training(config: Dict[str, Any], log: bool = True, save: bool = False, t
     print(config)
 
     # TODO: add loading from checkpoint?
-    
+
     # save experiment settings
     if save:
         if os.path.exists(settings.get_model_folder(config['config_name']) / "config.json"):
@@ -52,14 +54,20 @@ def run_training(config: Dict[str, Any], log: bool = True, save: bool = False, t
 
     hetero_data = config['model_name'] == 'HAN'
 
+    if hetero_data:
+        graph_prepoc = to_pytorch_heterodata
+    else:
+        graph_prepoc = to_pytorch_data
+
     # Load train and val data
+    # TODO: REFACTOR
     data = pd.read_json(settings.TRAIN_DATA, lines=True).sample(
         frac=config['subset_size'], random_state=0)
     train, val = train_test_split(data, test_size=0.2)
 
     # TODO: add hetero flag
-    train_dataset = to_pytorch_dataset(train, settings.TARGET_LABELS)
-    val_dataset = to_pytorch_dataset(val, settings.TARGET_LABELS)
+    train_dataset = graph_prepoc(train, settings.TARGET_LABELS)
+    val_dataset = graph_prepoc(val, settings.TARGET_LABELS)
 
     # make a data loader for batches
     train_loader = DataLoader(
@@ -82,6 +90,7 @@ def run_training(config: Dict[str, Any], log: bool = True, save: bool = False, t
                              settings.TARGET_LABELS,
                              loss_type=config['loss'],
                              learning_rate=config['lr'],
+                             hetero=hetero_data,
                              log=log,
                              save_to=settings.get_model_path(config['config_name']) if save else None)
 
@@ -109,10 +118,15 @@ def run_testing(model_folder: Path, log: bool = True):
         config = json.load(f)
 
     hetero_data = config['model_name'] == 'HAN'
+    
+    if hetero_data:
+        graph_prepoc = to_pytorch_heterodata
+    else:
+        graph_prepoc = to_pytorch_data
 
     # load test data
     test = pd.read_csv(settings.TEST_DATA)
-    test_dataset = to_pytorch_dataset(test, settings.TEST_LABELS, train=False)
+    test_dataset = graph_prepoc(test, settings.TEST_LABELS, train=False)
     test_loader = DataLoader(
         test_dataset, batch_size=config['batch_size'], shuffle=True)
 
@@ -135,13 +149,16 @@ def run_testing(model_folder: Path, log: bool = True):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Parsing argument")
-    parser.add_argument("--config_path", type=str, default=None, help="Path to json file with an experiment configuration")
-    parser.add_argument("--log", type=bool, default=False,  help="Log to wandb?")
-    parser.add_argument("--train", type=bool, default=False, help="Train model?")
+    parser.add_argument("--config_path", type=str, default=None,
+                        help="Path to json file with an experiment configuration")
+    parser.add_argument("--log", type=bool, default=False,
+                        help="Log to wandb?")
+    parser.add_argument("--train", type=bool,
+                        default=False, help="Train model?")
     parser.add_argument("--test", type=bool, default=False, help="Test model?")
-    parser.add_argument("--save", type=bool, default=False,  help="Save model after training?")
+    parser.add_argument("--save", type=bool, default=False,
+                        help="Save model after training?")
     args = parser.parse_args()
-
 
     if args.config_path == None:
         # example config
@@ -153,16 +170,14 @@ if __name__ == "__main__":
         with open(args.config_path, 'r') as f:
             config = json.load(f)
 
-
     if args.log:
         wandb.init(project=settings.PROJECT_NAME,
                    config=config, name=config['config_name'])
 
-
     if args.train:
         res, model = run_training(config, args.log, args.save, args.test)
         print(res)
-        
+
     elif args.test:
         res = run_testing(settings.get_model_folder(
             config['config_name']), args.log)

@@ -60,7 +60,7 @@ class Predictor(torch.nn.Module):
 
     def forward(self, data):
 
-        x = self.graph_stack(data.x, data.edge_index)
+        x = self.graph_stack(data)
 
         for i in range(self.pred_layers-1):
             x = self._nns[i](x)

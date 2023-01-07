@@ -53,3 +53,19 @@ class HAN(GraphStack):
         params['metadata'] = graph_info['metadata']
 
         return cls(**params)
+
+    def forward(self, data):
+        x = data.x_dict
+        edge_index = data.edge_index_dict
+        for i in range(self.graph_layers):
+            x = self._convs[i](x, edge_index)
+            x_dict = {}
+            
+            for key in x.keys():
+                x_dict[key] = self._norms[i](x[key])
+                x_dict[key] = self._drops[i](x[key])
+                
+            x=x_dict
+
+        flat_x = torch.cat(list(x.values()))
+        return flat_x
