@@ -1,4 +1,4 @@
-from typing import Dict, Any, List
+from typing import Dict, Any, cast
 import torch
 from configs.graph_configs import GATConfig, GCNConfig, HANConfig
 from model.gat import GAT
@@ -6,26 +6,23 @@ from model.gcn import GCN
 from model.han import HAN
 
 
-class PredictorConfig():
-
-    loss_function: Dict[str, Any] = {
-        'crossentropy': torch.nn.CrossEntropyLoss,
-        'mae': torch.nn.L1Loss,
-        'mse': torch.nn.MSELoss
-    }
+class PredictorConfig:
 
     hyperparameters: Dict[str, Any] = {
         # predictor stack hyperparams
-        'pred_layers': {
-            'values': [3, 5, 9]
-        },
-        'pred_hidden_channels': {
-            'values': [64, 128, 256, 512]
-        },
-        'pred_dropouts': {
-            'values': [0.2, 0.3, 0.5]
-        },
+        "pred_layers": 3,
+        "pred_hidden_channels": 64,
+        "pred_dropouts": 0.3,
     }
+
+    @classmethod
+    def from_dict(cls, config: Dict['str', Any]):
+
+        res_conf = {}
+        for key, val in cls.hyperparameters.items():
+            res_conf[key] = type(val)(config[key]) if key in config else val
+
+        return res_conf
 
 
 class GraphConfig():
@@ -44,24 +41,33 @@ class GraphConfig():
         },
     }
 
+    @classmethod
+    def from_dict(cls, config: Dict['str', Any]):
+
+        return cls.models[config['model_name']]['config'].from_dict(config)
+
 
 class TrainConfig():
-    hyperparameters = {
-        'subset_size': {'value': 1},
-        'batch_size': {'values': [8, 16, 32, 64]},
-        'epochs': {'value': 20},
-        'lr': {
-            'values': [1e-2, 1e-3, 2e-2, 2e-3, 3e-2, 3e-3]
-        },
-        'loss': {
-            'values': ['crossentropy', 'mse', 'mae']
-        },
+
+    loss_function: Dict[str, Any] = {
+        'crossentropy': torch.nn.CrossEntropyLoss,
+        'mae': torch.nn.L1Loss,
+        'mse': torch.nn.MSELoss
     }
 
+    hyperparameters = {
+        "subset_size": 0.1,
+        "batch_size": 64,
+        "epochs": 1,
+        "lr": 1e-3,
+        "loss": "crossentropy",
+    }
 
-# class DataSettings(BaseDataSettings):
-#     def __init__(self, data_config: Path) -> None:
-#         super(DataSettings).__init__()
-#             ...
-#                kwargs
-#             # TODO load params from json
+    @classmethod
+    def from_dict(cls, config: Dict['str', Any]):
+
+        res_conf = {}
+        for key, val in cls.hyperparameters.items():
+            res_conf[key] = type(val)(config[key]) if key in config else val
+
+        return res_conf
