@@ -80,7 +80,7 @@ class HyperparameterOptimization(Problem):
         run_config['model_name'] = self.model_name
         run_config['group'] = self.group_name
 
-        model, res = run(**run_config)
+        res, model = run(**run_config)
 
         return res['mcrmse'][-1] # TODO: fix hardcoding
 
@@ -99,4 +99,4 @@ if __name__ == "__main__":
     best_params, best_score = algorithm.run(task)
 
     print('Best score:', best_score)
-    print('Best parameters:', get_hyperparameters(best_params))
+    print('Best parameters:', get_hyperparameters(best_params, problem.hpo_config))

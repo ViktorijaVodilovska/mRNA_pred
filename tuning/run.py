@@ -15,12 +15,15 @@ def run(**kwargs):
     res_conf.update(GraphConfig.from_dict(conf))
     res_conf.update(TrainConfig.from_dict(conf))
 
-    # if 'group' in conf:
-    #     run = wandb.init(config=res_conf, group=conf['group'], project=settings.PROJECT_NAME)
-    # else:
-    #     run = wandb.init() # gets everything from the sweep agent
-    run_training(res_conf, log=False)
+    print(res_conf)
 
+    if 'group' in conf:
+        # run = wandb.init(config=res_conf, group=conf['group'], project=settings.PROJECT_NAME)
+        return run_training(res_conf, log=False)
+    else:
+        run = wandb.init() # gets everything from the sweep agent
+        run_training(res_conf)
+        
 
 if __name__ == "__main__":
     run(**dict(arg.replace("--","").split('=') for arg in sys.argv[1:]))
