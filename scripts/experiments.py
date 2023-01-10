@@ -16,7 +16,7 @@ from scripts.evaluate import test_model
 import wandb
 
 
-def get_graph_info(example, hetero):
+def get_graph_info(example, hetero=False):
     # PUT IN DATASET CLASS
     graph_info = {}
     if hetero:
@@ -44,7 +44,10 @@ def run_training(config: Dict[str, Any], log: bool = True, save: bool = False, t
 
     print(config)
 
+    # return None, {'mcrmse':[numpy.random.randn()]}
+
     # TODO: add loading from checkpoint?
+
 
     # save experiment settings
     if save:
@@ -60,7 +63,7 @@ def run_training(config: Dict[str, Any], log: bool = True, save: bool = False, t
         graph_prepoc = to_pytorch_data
 
     # Load train and val data
-    # TODO: REFACTOR
+    # TODO: PUT IN SEPERATE FUNC
     data = pd.read_json(settings.TRAIN_DATA, lines=True).sample(
         frac=config['subset_size'], random_state=0)
     train, val = train_test_split(data, test_size=0.2)

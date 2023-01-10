@@ -17,12 +17,8 @@ def run(**kwargs):
 
     print(res_conf)
 
-    if 'group' in conf:
-        # run = wandb.init(config=res_conf, group=conf['group'], project=settings.PROJECT_NAME)
-        return run_training(res_conf, log=False)
-    else:
-        run = wandb.init() # gets everything from the sweep agent
-        run_training(res_conf)
+    run = wandb.init() # gets everything from the sweep agent
+    run_training(res_conf)
         
 
 if __name__ == "__main__":
