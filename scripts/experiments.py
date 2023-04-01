@@ -14,10 +14,12 @@ from configs.base_config import BaseSettings as settings
 from scripts.train import train_model
 from scripts.evaluate import test_model
 import wandb
+from graph.mrna_dataset import mRNADataset
+
 
 
 def get_graph_info(example, hetero=False):
-    # PUT IN DATASET CLASS
+    # TODO: PUT IN DATASET CLASS
     graph_info = {}
     if hetero:
         graph_info['metadata'] = example.metadata()
@@ -43,40 +45,28 @@ def run_training(config: Dict[str, Any], log: bool = True, save: bool = False, t
     """
 
     print(config)
-
-    # return None, {'mcrmse':[numpy.random.randn()]}
-
     # TODO: add loading from checkpoint?
-
 
     # save experiment settings
     if save:
-        if os.path.exists(settings.get_model_folder(config['config_name']) / "config.json"):
-            with open(settings.get_model_folder(config['config_name']) / "config.json", "w") as f:
-                json.dump(config, f)
+        with open(settings.get_model_folder(config['config_name']) / "config.json", "w") as f:
+            json.dump(config, f)
 
     hetero_data = config['model_name'] == 'HAN'
-
-    if hetero_data:
-        graph_prepoc = to_pytorch_heterodata
-    else:
-        graph_prepoc = to_pytorch_data
 
     # Load train and val data
     # TODO: PUT IN SEPERATE FUNC
     data = pd.read_json(settings.TRAIN_DATA, lines=True).sample(
         frac=config['subset_size'], random_state=0)
     train, val = train_test_split(data, test_size=0.2)
+    train=train.reset_index()
+    val=val.reset_index()
+    
+    train_dataset = mRNADataset(data = train, target_cols = settings.TARGET_LABELS)
+    val_dataset = mRNADataset(data = val, target_cols = settings.TARGET_LABELS)
+    train_loader = DataLoader(train_dataset, batch_size=config['batch_size'], shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=config['batch_size'], shuffle=True)
 
-    # TODO: add hetero flag
-    train_dataset = graph_prepoc(train, settings.TARGET_LABELS)
-    val_dataset = graph_prepoc(val, settings.TARGET_LABELS)
-
-    # make a data loader for batches
-    train_loader = DataLoader(
-        train_dataset, batch_size=config['batch_size'], shuffle=True)
-    val_loader = DataLoader(
-        val_dataset, batch_size=config['batch_size'], shuffle=True)
 
     # make model
     print("First entry example:")
@@ -85,6 +75,10 @@ def run_training(config: Dict[str, Any], log: bool = True, save: bool = False, t
 
     pred_model = Predictor.from_config(config, graph_info)
 
+    if log:
+        wandb.init(project=settings.PROJECT_NAME,
+                   config=config, name=config['config_name'])
+        
     # train model
     res, model = train_model(pred_model,
                              train_loader,
@@ -95,7 +89,7 @@ def run_training(config: Dict[str, Any], log: bool = True, save: bool = False, t
                              learning_rate=config['lr'],
                              hetero=hetero_data,
                              log=log,
-                             save_to=settings.get_model_path(config['config_name']) if save else None)
+                             save_to=settings.get_model_path(config['config_name']) if 'config_name' in config  else None)
 
     # test model
     if test:
@@ -121,17 +115,12 @@ def run_testing(model_folder: Path, log: bool = True):
         config = json.load(f)
 
     hetero_data = config['model_name'] == 'HAN'
-    
-    if hetero_data:
-        graph_prepoc = to_pytorch_heterodata
-    else:
-        graph_prepoc = to_pytorch_data
 
+    # TODO: add hetero in dataset class  
     # load test data
     test = pd.read_csv(settings.TEST_DATA)
-    test_dataset = graph_prepoc(test, settings.TEST_LABELS, train=False)
-    test_loader = DataLoader(
-        test_dataset, batch_size=config['batch_size'], shuffle=True)
+    test_dataset = mRNADataset(data = test, target_cols = settings.TARGET_LABELS)
+    test_loader = DataLoader(test_dataset, batch_size=config['batch_size'], shuffle=True)
 
     # get graph info
     graph_info = get_graph_info(test_dataset[0], hetero_data)
@@ -172,10 +161,6 @@ if __name__ == "__main__":
     else:
         with open(args.config_path, 'r') as f:
             config = json.load(f)
-
-    if args.log:
-        wandb.init(project=settings.PROJECT_NAME,
-                   config=config, name=config['config_name'])
 
     if args.train:
         res, model = run_training(config, args.log, args.save, args.test)

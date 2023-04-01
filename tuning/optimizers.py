@@ -5,19 +5,18 @@ from niapy.algorithms.other import (
 )
 from niapy.algorithms.basic import (
     ParticleSwarmAlgorithm,
-    # ArtificialBeeColony,
+    ArtificialBeeColonyAlgorithm,
     GeneticAlgorithm,
 )
 from typing import Dict
 
 
 # TODO: add params
+# TODO: meta hpo?
 optimizers: Dict[str, Algorithm] = {
     'hill': HillClimbAlgorithm(),
-    'simulated': SimulatedAnnealing(),
+    'simulated': SimulatedAnnealing(delta=0.3, starting_temperature=200, delta_temperature=0.9),
     'pso': ParticleSwarmAlgorithm(),
-    # 'abc': ArtificialBeeColony(),
+    'abc': ArtificialBeeColonyAlgorithm(),
     'genetic': GeneticAlgorithm()
 }
-
-# TODO: sweep across optimizer param options?

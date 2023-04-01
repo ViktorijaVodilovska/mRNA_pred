@@ -39,7 +39,7 @@ parameters:
 
 To start a hyperparameter optimization experiment run:
 ```
-python -m tuning.hpo --model <name of model> --algorithm <name of algorithm> --count <num explored solutions>
+python -m tuning.hpo --model <name of model> --algorithm <name of algorithm> --timeout 3600
 ```
 
 ### Wandb optimizers

@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Dict
 import pandas as pd
 import wandb
+from graph.mrna_dataset import mRNADataset
 from scripts.experiments import get_graph_info
 from graph.homogenous_dataset import to_pytorch_data
 from configs.predictor_config import GraphConfig, PredictorConfig, TrainConfig
@@ -14,15 +15,17 @@ from niapy.task import OptimizationType, Task
 from scripts.train import train_model
 from tuning.optimizers import optimizers
 from sklearn.model_selection import train_test_split
-from torch_geometric.data import Data
+from torch_geometric.data import Dataset
 from torch_geometric.loader import DataLoader
 from typing import List
+import gc
+import multiprocessing as mp
 
 
 # dictionary with the model hpo configurations as yaml files
 model_hpo_configs: Dict[str, Path] = {
-    'GAT': Path('tuning/hpo_configs/gat_random.yaml'),
-    'GCN': Path('tuning/hpo_configs/gcn_random.yaml'),
+    'GAT': Path('tuning/hpo_configs/gat_10_narrow.yaml'),
+    'GCN': Path('tuning/hpo_configs/gcn_10_narrow.yaml'),
     'HAN': Path('tuning/hpo_configs/han_random.yaml'),
 }
 
@@ -40,6 +43,9 @@ def get_hyperparameters(x, hpo_config):
     for param_id, (key, vals) in enumerate(hpo_config.items()):
         num_values = len(vals)
 
+        if num_values == 1:
+            params[key] = vals
+
         ranges = {
             i: (i*(1/num_values), (i+1)*(1/num_values))
             for i in range(num_values)
@@ -51,9 +57,27 @@ def get_hyperparameters(x, hpo_config):
 
     return params
 
+def evaluate_model(train, test, config, log):
+    train_loader = DataLoader(train, batch_size=config['batch_size'], shuffle=True)
+    val_loader = DataLoader(test, batch_size=config['batch_size'], shuffle=True)
+
+    pred_model = Predictor.from_config(config, get_graph_info(train[0]))
+
+    res, model = train_model(pred_model,
+                                 train_loader,
+                                 val_loader,
+                                 epochs=config['epochs'],
+                                 target_labels = settings.TARGET_LABELS,
+                                 loss_type=config['loss'],
+                                 learning_rate=config['lr'],
+                                 log=log)
+
+    return res['mcrmse']
+    
+
 
 class HyperparameterOptimization(Problem):
-    def __init__(self, train: List[Data], test: List[Data], model_name: str = 'GAT', lower: float = 0, upper: float = 1, log:bool=False, group_name: str = 'niapy_hpo'):
+    def __init__(self, train: Dataset, test: Dataset, model_name: str = 'GAT', lower: float = 0, upper: float = 1, log:bool=False, group_name: str = 'niapy_hpo'):
         """
         Class defining the hyperparameter optimization problem
         """
@@ -74,6 +98,11 @@ class HyperparameterOptimization(Problem):
                            in parameters.items() 
                            if 'values' in v
                            }
+        self.exp_config = {k: v['value']
+                           for k, v 
+                           in parameters.items() 
+                           if 'value' in v
+                           }
         dimension = len(self.hpo_config.keys())
 
         super().__init__(dimension=dimension, lower=lower, upper=upper)
@@ -81,57 +110,77 @@ class HyperparameterOptimization(Problem):
     def _evaluate(self, x):
         
         run_config = get_hyperparameters(x, self.hpo_config)
+        run_config.update(self.exp_config)
 
-        run_config['model_name'] = self.model_name
+        res_conf={}
 
-        res_conf = {}
         res_conf.update(PredictorConfig.from_dict(run_config))
         res_conf.update(GraphConfig.from_dict(run_config))
         res_conf.update(TrainConfig.from_dict(run_config))
 
-        train_loader = DataLoader(self.train, batch_size=8, shuffle=True)
-        val_loader = DataLoader(self.test, batch_size=8, shuffle=True)
-
         print(res_conf)
-
-        pred_model = Predictor.from_config(res_conf, get_graph_info(self.train[0]))
 
         if self.log:
             run = wandb.init(config=res_conf, group=self.group_name, project=settings.PROJECT_NAME)
 
-        res, model = train_model(pred_model,
-                                 train_loader,
-                                 val_loader,
-                                 3,
-                                 settings.TARGET_LABELS,
-                                 loss_type=res_conf['loss'],
-                                 learning_rate=res_conf['lr'],
-                                 log=self.log)
+        res = evaluate_model(self.train, self.test, res_conf, self.log)
+        
+        if self.log:
+            wandb.finish()
 
-        return res['mcrmse']  # TODO: fix hardcoding
+        gc.collect
 
+        return res  # TODO: fix hardcoding
+
+
+def run_algorithm(task, algorithm):
+    best_params, best_score = algorithm.run(task)
+    return best_params, best_score
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Parsing argument")
     parser.add_argument("--algorithm", type=str, default='genetic', help="Optimization algorithm to use. Options [hill, simulated, pso, abc, genetic]")
     parser.add_argument("--model", type=str, default='GAT', help="Model to optimize. Options [GAT, GCN, HAN]")
-    parser.add_argument("--evals", type=int, default=1, help="Number of model evaluations")
-    parser.add_argument("--iters", type=int, default=1, help="Number of generated solutions")
+    parser.add_argument("--evals", type=int, default=None, help="Number of model evaluations")
+    parser.add_argument("--iters", type=int, default=None, help="Number of generated solutions")
+    parser.add_argument("--timeout", type=int, default=60, help="Timeout for optimization")
     parser.add_argument("--log", type=bool, default=False, help="Log to wandb?")
+    parser.add_argument("--experiment_name", type=str, default="HPO", help="Name to add to logged experiment.")
+    parser.add_argument("--data_fraction", type=float, default=0.1, help="Fraction of data to include for experiment.")
+    
     args = parser.parse_args()
 
-    data = pd.read_json(settings.TRAIN_DATA, lines=True).sample(frac=0.01, random_state=0)
+    data = pd.read_json(settings.TRAIN_DATA, lines=True).sample(frac=args.data_fraction, random_state=0)
     train, val = train_test_split(data, test_size=0.2)
 
-    train_dataset = to_pytorch_data(train, settings.TARGET_LABELS)
-    val_dataset = to_pytorch_data(val, settings.TARGET_LABELS)
+    train=train.reset_index()
+    val=val.reset_index()
 
-    problem = HyperparameterOptimization(train_dataset, val_dataset, args.model, group_name=f'{args.model}_{args.algorithm}', log=args.log)
+    train_dataset = mRNADataset(data = train, target_cols = settings.TARGET_LABELS)
+    val_dataset = mRNADataset(data = val, target_cols = settings.TARGET_LABELS)
 
-    task = Task(problem, max_iters=args.iters, max_evals = args.evals, optimization_type=OptimizationType.MINIMIZATION)
-
+    problem = HyperparameterOptimization(train_dataset, val_dataset, args.model, group_name=f'{args.experiment_name}_{args.model}_{args.algorithm}', log=args.log)    
     algorithm = optimizers[args.algorithm]
-    best_params, best_score = algorithm.run(task)
 
-    print('Best score:', best_score)
-    print('Best parameters:', get_hyperparameters(best_params, problem.hpo_config))
+    if args.timeout == None:
+        # Run for fixed iterations
+        task = Task(problem, max_iters=args.iters, max_evals = args.evals, optimization_type=OptimizationType.MINIMIZATION)
+        best_params, best_score = algorithm.run(task)
+    else:
+        # Run for fixed time, unlimited iterations
+        task = Task(problem, optimization_type=OptimizationType.MINIMIZATION)
+
+        # Create a child process to run the algorithm
+        p = mp.Process(target=run_algorithm, args=(task, algorithm))
+        p.start()
+
+        print('here!')
+        
+        # Wait for the process to finish or timeout
+        p.join(timeout=args.timeout)
+
+        print('now here!')
+
+        if p.is_alive():
+            # If the process is still alive after the timeout, terminate it
+            p.terminate()

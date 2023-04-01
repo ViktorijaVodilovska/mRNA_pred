@@ -5,3 +5,4 @@ pandas==1.5.2
 ViennaRNA==2.5.0
 niapy==2.0.4
 wandb==0.13.7
+pyyaml==6.0
