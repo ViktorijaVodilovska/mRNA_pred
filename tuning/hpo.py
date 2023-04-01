@@ -6,7 +6,6 @@ import pandas as pd
 import wandb
 from graph.mrna_dataset import mRNADataset
 from scripts.experiments import get_graph_info
-from graph.homogenous_dataset import to_pytorch_data
 from configs.predictor_config import GraphConfig, PredictorConfig, TrainConfig
 from configs.base_config import BaseSettings as settings
 from model.predictor import Predictor
