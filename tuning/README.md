@@ -20,16 +20,6 @@ from wandb
 Each experiment (sweep) is configured by a YAML file in tuning/hpo_configs/. The configuration file contains:
 
 ```
-# (for wandb)
-program: <path to program>
-command:
-    <command arguments>
-method: <search method>
-metric:
-    goal: <minimize or optimize>
-    name: <metric name>
-
-# (for both)
 parameters:
     <parameter_name>:
         values: [<val 1>, ..., <val n>]
