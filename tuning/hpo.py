@@ -161,11 +161,7 @@ if __name__ == "__main__":
     problem = HyperparameterOptimization(train_dataset, val_dataset, args.model, group_name=f'{args.experiment_name}_{args.model}_{args.algorithm}', log=args.log)    
     algorithm = optimizers[args.algorithm]
 
-    if args.timeout == None:
-        # Run for fixed iterations
-        task = Task(problem, max_iters=args.iters, max_evals = args.evals, optimization_type=OptimizationType.MINIMIZATION)
-        best_params, best_score = algorithm.run(task)
-    else:
+    if args.evals == None or args.iters == None:
         # Run for fixed time, unlimited iterations
         task = Task(problem, optimization_type=OptimizationType.MINIMIZATION)
 
@@ -183,3 +179,7 @@ if __name__ == "__main__":
         if p.is_alive():
             # If the process is still alive after the timeout, terminate it
             p.terminate()
+    else:
+        # Run for fixed iterations
+        task = Task(problem, max_iters=args.iters, max_evals = args.evals, optimization_type=OptimizationType.MINIMIZATION)
+        best_params, best_score = algorithm.run(task)
