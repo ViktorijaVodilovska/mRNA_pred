@@ -16,17 +16,9 @@ from tuning.optimizers import optimizers
 from sklearn.model_selection import train_test_split
 from torch_geometric.data import Dataset
 from torch_geometric.loader import DataLoader
-from typing import List
+from tuning.optimizers import model_hpo_configs
 import gc
 import multiprocessing as mp
-
-
-# dictionary with the model hpo configurations as yaml files
-model_hpo_configs: Dict[str, Path] = {
-    'GAT': Path('tuning/hpo_configs/gat_10_narrow.yaml'),
-    'GCN': Path('tuning/hpo_configs/gcn_10_narrow.yaml'),
-    'HAN': Path('tuning/hpo_configs/han_random.yaml'),
-}
 
 
 def get_hyperparameters(x, hpo_config):

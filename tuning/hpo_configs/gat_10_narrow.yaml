@@ -1,41 +1,31 @@
-program: tuning.run
-command:
-- /home/viktorija/repos/mRNA_pred/.venv/bin/python
-- -m
-- ${program}
-- ${args}
-method: random
-metric:
-  goal: minimize
-  name: mcrmse
 parameters:
   model_name:
     value: GAT
   batch_size:
-    values: [64, 128, 256]
+    values: [8, 16, 32]
   epochs:
-    value: 20
+    value: 5
   graph_dropouts:
     values: [0.2, 0.3, 0.5]
   graph_hidden_channels:
-    values: [64, 128, 256, 512]
+    values: [32, 64, 128]
   graph_layers:
-    values: [3, 5, 9]
+    values: [1, 2, 3]
   graph_norm:
     value: true
   attention_dropouts:
     values: [0.2, 0.3, 0.5]
   attention_heads:
-    values: [2, 4, 8]
+    value: 2
   loss:
     values: [crossentropy, mse, mae]
   lr:
-    values: [0.01, 0.001, 0.0001, 0.00001]
+    values: [0.001, 0.0001, 0.00001]
   pred_dropouts:
     values: [0.2, 0.3, 0.5]
   pred_hidden_channels:
-    values: [64, 128, 256]
+    values: [32, 64, 128]
   pred_layers:
-    values: [3, 5, 9]
+    values: [1, 2, 3]
   subset_size:
     value: 0.1

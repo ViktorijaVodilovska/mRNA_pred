@@ -8,7 +8,7 @@ from torch_geometric.loader import DataLoader
 from sklearn.model_selection import train_test_split
 from configs.base_config import BaseSettings as settings
 from graph.mrna_dataset import mRNADataset
-from tuning.hpo import model_hpo_configs
+from tuning.optimizers import model_hpo_configs
 from model.predictor import Predictor
 from scripts.experiments import get_graph_info
 from scripts.train import train_model

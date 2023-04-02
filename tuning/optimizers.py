@@ -1,3 +1,4 @@
+from pathlib import Path
 from niapy.algorithms import Algorithm
 from niapy.algorithms.other import (
     HillClimbAlgorithm,
@@ -10,6 +11,12 @@ from niapy.algorithms.basic import (
 )
 from typing import Dict
 
+# dictionary with the model hpo configurations as yaml files
+model_hpo_configs: Dict[str, Path] = {
+    'GAT': Path('tuning/hpo_configs/gat_10_narrow.yaml'),
+    'GCN': Path('tuning/hpo_configs/gcn_10_narrow.yaml'),
+    # 'HAN': Path('tuning/hpo_configs/han_random.yaml'),
+}
 
 # TODO: add params
 # TODO: meta hpo?
