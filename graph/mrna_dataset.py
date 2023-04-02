@@ -72,9 +72,9 @@ class mRNADataset(Dataset):
                 outputs = []
                 for l in self.target_labels:
                     try:
-                        outputs.append(self.target_values[l][index][node])
+                        outputs.append(float(self.target_values[l][index][node]))
                     except:
-                        outputs.append(float(json.loads(self.target_values[l])[node]))
+                        outputs.append(float(list(json.loads(self.target_values[l][index]))[node]))
                         
                 outputs_per_node.append(outputs)
 

@@ -5,8 +5,6 @@ from pathlib import Path
 import torch
 from model.predictor import Predictor
 from torch_geometric.loader import DataLoader
-from graph.homogenous_dataset import to_pytorch_data
-from graph.heterogenous_dataset import to_pytorch_heterodata
 from sklearn.model_selection import train_test_split
 import pandas as pd
 from typing import Dict, Any
@@ -119,7 +117,7 @@ def run_testing(model_folder: Path, log: bool = True):
     # TODO: add hetero in dataset class  
     # load test data
     test = pd.read_csv(settings.TEST_DATA)
-    test_dataset = mRNADataset(data = test, target_cols = settings.TARGET_LABELS)
+    test_dataset = mRNADataset(data = test, target_cols = settings.TEST_LABELS)
     test_loader = DataLoader(test_dataset, batch_size=config['batch_size'], shuffle=True)
 
     # get graph info
