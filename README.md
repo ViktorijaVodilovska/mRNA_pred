@@ -1,8 +1,39 @@
 # mRNA_pred
+**mRNA Degradation Prediction System**
 
-To see current work on graph models check /dev branch
+## Research
+This code is part of the study Hyperparameter Optimization of Graph Neural Networks for mRNA Degradation Prediction.
 
-To see current work on optimization check /niapy_hpo branch
+### Dataset
+The dataset used in this study is from The Stanford Eterna Dataset of mRNA molecules. <br />
+https://www.kaggle.com/competitions/stanford-covid-vaccine/data
 
-To see results of optimization check this spreadsheet
-[hpo report.xlsx](https://github.com/ViktorijaVodilovska/mRNA_pred/files/10701241/hpo.report.10_percent.xlsx)
+### Methods
+#### Models
+- GAT
+- GCN
+
+#### Optimization Algorithms
+- Random Search
+- Bayesian Search
+- Hill Climb
+- Simulated Annealing
+- Genetic Algorithm
+- Particle Swarm Optimization
+- Artificial Bee Colony
+
+## Usage
+
+### Installation
+```
+python -m venv .venv
+pip install -r requirements.txt
+```
+
+### Hyperparameter Optimization
+For more details on HPO options refer to the HPO documentation in [tuning/README.md](tuning/README.md).
+
+### GNN Experiment
+```
+python -m scripts.experiment --config_path <path_to_json> --train true --test true --log true --save true
+```
